@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>귀차니스트의 방랑</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo" onclick="showHome()">
+                    <span class="logo-icon">LG</span> 귀차니스트
+                </h1>
+                <button class="saved-btn" onclick="showMypage()">저장함</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Home Screen -->
+            <div id="home-screen" class="screen active">
+                <div class="home-content">
+                    <div class="hero-image">
+                        <img src="https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=2060&auto=format&fit=crop" alt="여행">
+                        <div class="hero-overlay">
+                            <div class="hero-badges">
+                                <span class="badge badge-primary">Minimal Effort</span>
+                                <span class="badge badge-secondary">Maps Integrated</span>
+                            </div>
+                            <h2 class="hero-title">집엔 가고 싶지만<br/><span class="highlight">여행 온 티</span>는 내야 할 때.</h2>
+                            <p class="hero-description">사람 많으면 바로 포기하세요.<br/>당신의 예산과 일정에 딱 맞는 <br/>최소 이동 코스를 추천해드립니다.</p>
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-large" onclick="showForm()">그래도 코스 짜기</button>
+                </div>
+            </div>
+
+            <!-- Form Screen -->
+            <div id="form-screen" class="screen">
+                <form id="travel-form" onsubmit="handleSubmit(event)" class="form-container">
+                    <div class="form-card">
+                        <section class="form-section">
+                            <h3 class="section-title">1. 일정 & 이동</h3>
+                            <div class="button-group">
+                                <button type="button" class="option-btn" data-field="duration" data-value="당일치기" onclick="selectOption('duration', '당일치기')">당일치기</button>
+                                <button type="button" class="option-btn" data-field="duration" data-value="1박 2일" onclick="selectOption('duration', '1박 2일')">1박 2일</button>
+                                <button type="button" class="option-btn" data-field="duration" data-value="2박 3일" onclick="selectOption('duration', '2박 3일')">2박 3일</button>
+                            </div>
+                            <div class="button-group">
+                                <button type="button" class="option-btn" data-field="transport" data-value="대중교통" onclick="selectOption('transport', '대중교통')">
+                                    <i class="fa-solid fa-train-subway"></i> 대중교통
+                                </button>
+                                <button type="button" class="option-btn" data-field="transport" data-value="자차" onclick="selectOption('transport', '자차')">
+                                    <i class="fa-solid fa-car"></i> 자차
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="form-section">
+                            <h3 class="section-title">2. 예산 & 맛집</h3>
+                            <div class="budget-grid">
+                                <button type="button" class="budget-btn" data-field="budget" data-value="10만원" onclick="selectOption('budget', '10만원')">10만원</button>
+                                <button type="button" class="budget-btn" data-field="budget" data-value="20만원" onclick="selectOption('budget', '20만원')">20만원</button>
+                                <button type="button" class="budget-btn" data-field="budget" data-value="30만원" onclick="selectOption('budget', '30만원')">30만원</button>
+                                <button type="button" class="budget-btn" data-field="budget" data-value="그 이상" onclick="selectOption('budget', '그 이상')">그 이상</button>
+                            </div>
+                            <button type="button" class="toggle-btn" id="food-toggle" onclick="toggleFood()">
+                                <i class="fa-solid fa-utensils"></i>
+                                <span id="food-text">먹는 건 대충 때울래요</span>
+                            </button>
+                        </section>
+
+                        <section class="form-section">
+                            <h3 class="section-title">3. 목적지</h3>
+                            <div class="region-grid">
+                                <button type="button" class="region-btn" data-field="region" data-value="서울" onclick="selectOption('region', '서울')">서울 (지하철 역세권)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="부산" onclick="selectOption('region', '부산')">부산 (바다만 잠깐)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="제주" onclick="selectOption('region', '제주')">제주 (주차장 넓은 곳)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="강릉" onclick="selectOption('region', '강릉')">강릉 (바다 산책 최단거리)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="전주" onclick="selectOption('region', '전주')">전주 (한옥마을 엎어지면 코 앞)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="경주" onclick="selectOption('region', '경주')">경주 (황리단길 껌딱지)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="인천" onclick="selectOption('region', '인천')">인천 (공항 근처/송도)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="속초" onclick="selectOption('region', '속초')">속초 (중앙시장 먹방)</button>
+                                <button type="button" class="region-btn" data-field="region" data-value="여수" onclick="selectOption('region', '여수')">여수 (밤바다 호캉스)</button>
+                            </div>
+                        </section>
+
+                        <section class="form-section">
+                            <h3 class="section-title">4. 당신의 상태</h3>
+                            <div class="style-list">
+                                <button type="button" class="style-btn" data-field="style" data-value="집돌이" onclick="selectOption('style', '집돌이')">집돌이/집순이 (이동 극혐)</button>
+                                <button type="button" class="style-btn" data-field="style" data-value="효율충" onclick="selectOption('style', '효율충')">가성비 효율충 (최단 코스)</button>
+                                <button type="button" class="style-btn" data-field="style" data-value="SNS" onclick="selectOption('style', 'SNS')">SNS 과시용 (찍고 바로 튀기)</button>
+                                <button type="button" class="style-btn" data-field="style" data-value="돈충" onclick="selectOption('style', '돈충')">돈으로 해결하는 게으름 (발렛 필수)</button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-large">에너지 0% 여행 코스 받기</button>
+                </form>
+            </div>
+
+            <!-- Loading Screen -->
+            <div id="loading-screen" class="screen">
+                <div class="loading-content">
+                    <div class="loading-emoji">💤</div>
+                    <h2 class="loading-title">지도를 펴고 경로 탐색 중...</h2>
+                    <p class="loading-subtitle" id="loading-budget"></p>
+                    <div class="loading-bar">
+                        <div class="loading-bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="screen">
+                <div class="result-content">
+                    <div class="result-header">
+                        <button class="back-btn" onclick="showHome()"><i class="fa-solid fa-house"></i></button>
+                        <div class="spacer"></div>
+                        <button class="save-btn" onclick="saveTravel()">
+                            <i class="fa-solid fa-bookmark"></i> 저장하기
+                        </button>
+                    </div>
+
+                    <div class="result-card" id="result-card">
+                        <!-- 결과 내용이 여기에 동적으로 삽입됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mypage Screen -->
+            <div id="mypage-screen" class="screen">
+                <div class="mypage-content">
+                    <div class="mypage-header">
+                        <h2>내 저장함</h2>
+                        <p>잊기 전에 꺼내보는 여정들</p>
+                    </div>
+                    <div id="saved-travels" class="saved-list">
+                        <!-- 저장된 여행 목록이 여기에 동적으로 삽입됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
