@@ -993,6 +993,96 @@ body {
     color: #ef4444;
 }
 
+/* Map Styles */
+.map-container {
+    margin-top: 32px;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-color);
+    display: none; /* 기본적으로 숨김, 결과 표시 시 보임 */
+    background: white;
+}
+
+.travel-map {
+    width: 100%;
+    height: 400px;
+    border-radius: 32px;
+    z-index: 1;
+    background: #f1f5f9;
+}
+
+/* Leaflet 컨테이너 스타일 */
+.leaflet-container {
+    font-family: 'Pretendard', sans-serif;
+    border-radius: 32px;
+}
+
+/* Custom Marker Styles */
+.custom-marker {
+    background: transparent;
+    border: none;
+}
+
+.marker-pin {
+    background: var(--primary-color);
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid white;
+}
+
+.marker-pin::after {
+    content: attr(data-number);
+    transform: rotate(45deg);
+    display: block;
+}
+
+/* Map Popup Styles */
+.map-popup {
+    min-width: 200px;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.map-popup h4 {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.map-popup p {
+    font-size: 13px;
+    color: var(--text-gray);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Leaflet Popup 커스터마이징 */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 0;
+}
+
+.leaflet-popup-content {
+    margin: 16px;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.leaflet-popup-tip {
+    background: white;
+    box-shadow: none;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
     .hero-title {
