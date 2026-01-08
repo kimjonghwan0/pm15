@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>귀차니스트의 방랑</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -128,6 +129,11 @@
                     <div class="result-card" id="result-card">
                         <!-- 결과 내용이 여기에 동적으로 삽입됩니다 -->
                     </div>
+                    
+                    <!-- 지도 컨테이너 -->
+                    <div id="map-container" class="map-container">
+                        <div id="travel-map" class="travel-map"></div>
+                    </div>
                 </div>
             </div>
 
@@ -146,6 +152,7 @@
         </main>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="app.js"></script>
 </body>
 </html>
