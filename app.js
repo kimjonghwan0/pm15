@@ -10,7 +10,9 @@ const state = {
         style: '집돌이'
     },
     currentResult: null,
-    savedTravels: []
+    savedTravels: [],
+    map: null,
+    markers: []
 };
 
 // 로컬 스토리지에서 저장된 여행 불러오기
@@ -260,6 +262,205 @@ function getRecommendation() {
     return getDefaultRecommendation();
 }
 
+// 지도 초기화
+function initMap() {
+    // 기존 지도가 있으면 제거
+    if (state.map) {
+        state.map.remove();
+        state.map = null;
+    }
+    
+    // 지도 컨테이너 확인
+    const mapContainer = document.getElementById('travel-map');
+    if (!mapContainer) return;
+    
+    // 한국 중심 좌표로 지도 생성
+    state.map = L.map('travel-map', {
+        zoomControl: true,
+        attributionControl: true
+    }).setView([37.5665, 126.9780], 10); // 서울 기본 좌표
+    
+    // OpenStreetMap 타일 레이어 추가
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(state.map);
+    
+    // 기존 마커 초기화
+    state.markers = [];
+}
+
+// 장소명을 좌표로 변환 (Geocoding)
+async function geocodePlace(placeName, region) {
+    try {
+        // OpenStreetMap Nominatim API 사용 (무료)
+        const query = `${placeName}, ${region}, 대한민국`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=kr`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'LazyTraveler/1.0' // Nominatim은 User-Agent 필요
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lon: parseFloat(data[0].lon)
+            };
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+    }
+    
+    // 실패 시 지역별 기본 좌표 반환
+    const regionCoords = {
+        '서울': { lat: 37.5665, lon: 126.9780 },
+        '부산': { lat: 35.1796, lon: 129.0756 },
+        '제주': { lat: 33.4996, lon: 126.5312 },
+        '강릉': { lat: 37.7519, lon: 128.8761 },
+        '전주': { lat: 35.8242, lon: 127.1480 },
+        '경주': { lat: 35.8562, lon: 129.2247 },
+        '인천': { lat: 37.4563, lon: 126.7052 },
+        '속초': { lat: 38.2070, lon: 128.5918 },
+        '여수': { lat: 34.7604, lon: 127.6622 }
+    };
+    
+    return regionCoords[region] || { lat: 37.5665, lon: 126.9780 };
+}
+
+// 지도에 장소 마커 추가
+async function addPlaceToMap(place, index, total, region) {
+    if (!state.map) return;
+    
+    const coords = await geocodePlace(place.name, region);
+    
+    // 마커 아이콘 생성
+    const markerIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="
+            background: #f97316;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid white;
+        ">
+            <span style="transform: rotate(45deg); display: block;">${index + 1}</span>
+        </div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30]
+    });
+    
+    const marker = L.marker([coords.lat, coords.lon], { icon: markerIcon })
+        .addTo(state.map)
+        .bindPopup(`
+            <div class="map-popup">
+                <h4>${place.name}</h4>
+                <p>${place.desc}</p>
+            </div>
+        `);
+    
+    state.markers.push({
+        marker: marker,
+        coords: coords,
+        place: place
+    });
+    
+    return coords;
+}
+
+// 지도에 경로 그리기
+function drawRouteOnMap(coordinates) {
+    if (!state.map || coordinates.length < 2) return;
+    
+    // 경로 선 그리기
+    const routeLine = L.polyline(
+        coordinates.map(c => [c.lat, c.lon]),
+        {
+            color: '#f97316',
+            weight: 4,
+            opacity: 0.7,
+            smoothFactor: 1
+        }
+    ).addTo(state.map);
+    
+    // 모든 마커가 보이도록 지도 범위 조정
+    if (coordinates.length > 0) {
+        const bounds = L.latLngBounds(coordinates.map(c => [c.lat, c.lon]));
+        state.map.fitBounds(bounds, { padding: [50, 50] });
+    }
+}
+
+// 결과 데이터로 지도 업데이트
+async function updateMapWithResults(data, region) {
+    // 기존 지도 제거
+    if (state.map) {
+        state.map.remove();
+        state.map = null;
+        state.markers = [];
+    }
+    
+    // 약간의 지연 후 지도 생성 (DOM 업데이트 후)
+    setTimeout(async () => {
+        const mapContainer = document.getElementById('travel-map');
+        if (!mapContainer) {
+            console.error('지도 컨테이너를 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 지도 초기화
+        initMap();
+        
+        // 지도 크기 조정 (컨테이너가 처음 표시될 때 필요)
+        setTimeout(() => {
+            if (state.map) {
+                state.map.invalidateSize();
+            }
+        }, 200);
+        
+        const allActivities = data.days.flatMap(d => d.activities);
+        const coordinates = [];
+        
+        // 각 장소를 지도에 추가
+        for (let i = 0; i < allActivities.length; i++) {
+            const coords = await addPlaceToMap(allActivities[i], i, allActivities.length, region);
+            if (coords) {
+                coordinates.push(coords);
+            }
+            
+            // API 호출 간 딜레이 (Nominatim 사용 제한)
+            if (i < allActivities.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+        
+        // 경로 그리기
+        if (coordinates.length >= 2) {
+            drawRouteOnMap(coordinates);
+        } else if (coordinates.length === 1) {
+            // 마커 하나만 있을 때
+            state.map.setView([coordinates[0].lat, coordinates[0].lon], 15);
+        }
+        
+        // 지도 크기 다시 조정
+        if (state.map) {
+            setTimeout(() => {
+                state.map.invalidateSize();
+            }, 100);
+        }
+    }, 300);
+}
+
 // 화면 전환
 function showScreen(screenName) {
     document.querySelectorAll('.screen').forEach(screen => {
@@ -276,6 +477,19 @@ function showScreen(screenName) {
 function showHome() {
     showScreen('home');
     state.currentResult = null;
+    
+    // 지도 제거
+    if (state.map) {
+        state.map.remove();
+        state.map = null;
+        state.markers = [];
+    }
+    
+    // 지도 컨테이너 숨기기
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+        mapContainer.style.display = 'none';
+    }
 }
 
 function showForm() {
@@ -324,11 +538,14 @@ function handleSubmit(e) {
         `${state.formData.budget} 예산에 맞춰 동선을 최적화하고 있어요.`;
     
     // 시뮬레이션 로딩
-    setTimeout(() => {
+    setTimeout(async () => {
         const recommendation = getRecommendation();
         state.currentResult = recommendation;
         renderResult(recommendation);
         showScreen('result');
+        
+        // 지도 업데이트
+        await updateMapWithResults(recommendation, state.formData.region);
     }, 2000);
 }
 
@@ -446,6 +663,12 @@ function renderResult(data) {
     `;
     
     card.innerHTML = html;
+    
+    // 지도 컨테이너가 있으면 표시
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+        mapContainer.style.display = 'block';
+    }
 }
 
 // 게으름 지수 정보
@@ -512,12 +735,15 @@ function renderSavedTravels() {
 }
 
 // 저장된 여행 불러오기
-function loadSavedTravel(id) {
+async function loadSavedTravel(id) {
     const travel = state.savedTravels.find(t => t.id === id);
     if (travel) {
         state.currentResult = travel.data;
         renderResult(travel.data);
         showScreen('result');
+        
+        // 지도 업데이트
+        await updateMapWithResults(travel.data, travel.region);
     }
 }
 
