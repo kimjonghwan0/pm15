@@ -12,7 +12,9 @@ const state = {
     currentResult: null,
     savedTravels: [],
     map: null,
-    markers: []
+    markers: [],
+    polylines: [],
+    geocoder: null
 };
 
 // 로컬 스토리지에서 저장된 여행 불러오기
@@ -264,71 +266,75 @@ function getRecommendation() {
 
 // 지도 초기화
 function initMap() {
-    // 기존 지도가 있으면 제거
-    if (state.map) {
-        state.map.remove();
-        state.map = null;
-    }
-    
     // 지도 컨테이너 확인
     const mapContainer = document.getElementById('travel-map');
     if (!mapContainer) return;
     
-    // 한국 중심 좌표로 지도 생성
-    state.map = L.map('travel-map', {
-        zoomControl: true,
-        attributionControl: true
-    }).setView([37.5665, 126.9780], 10); // 서울 기본 좌표
+    // 기존 마커 및 경로 제거
+    if (state.map) {
+        state.markers.forEach(marker => {
+            if (marker && marker.setMap) {
+                marker.setMap(null);
+            }
+        });
+        state.polylines.forEach(polyline => {
+            if (polyline && polyline.setMap) {
+                polyline.setMap(null);
+            }
+        });
+    }
     
-    // OpenStreetMap 타일 레이어 추가
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(state.map);
-    
-    // 기존 마커 초기화
     state.markers = [];
+    state.polylines = [];
+    
+    // 카카오맵 생성 (서울 기본 좌표)
+    const mapOption = {
+        center: new kakao.maps.LatLng(37.5665, 126.9780),
+        level: 5 // 확대 레벨
+    };
+    
+    state.map = new kakao.maps.Map(mapContainer, mapOption);
+    
+    // Geocoder 초기화
+    state.geocoder = new kakao.maps.services.Geocoder();
 }
 
 // 장소명을 좌표로 변환 (Geocoding)
 async function geocodePlace(placeName, region) {
-    try {
-        // OpenStreetMap Nominatim API 사용 (무료)
-        const query = `${placeName}, ${region}, 대한민국`;
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=kr`;
+    return new Promise((resolve) => {
+        if (!state.geocoder) {
+            state.geocoder = new kakao.maps.services.Geocoder();
+        }
         
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'LazyTraveler/1.0' // Nominatim은 User-Agent 필요
+        // 카카오맵 장소 검색 API 사용
+        const ps = new kakao.maps.services.Places();
+        const query = `${placeName} ${region}`;
+        
+        ps.keywordSearch(query, function(data, status) {
+            if (status === kakao.maps.services.Status.OK && data.length > 0) {
+                const place = data[0];
+                resolve({
+                    lat: parseFloat(place.y),
+                    lon: parseFloat(place.x)
+                });
+            } else {
+                // 실패 시 지역별 기본 좌표 반환
+                const regionCoords = {
+                    '서울': { lat: 37.5665, lon: 126.9780 },
+                    '부산': { lat: 35.1796, lon: 129.0756 },
+                    '제주': { lat: 33.4996, lon: 126.5312 },
+                    '강릉': { lat: 37.7519, lon: 128.8761 },
+                    '전주': { lat: 35.8242, lon: 127.1480 },
+                    '경주': { lat: 35.8562, lon: 129.2247 },
+                    '인천': { lat: 37.4563, lon: 126.7052 },
+                    '속초': { lat: 38.2070, lon: 128.5918 },
+                    '여수': { lat: 34.7604, lon: 127.6622 }
+                };
+                
+                resolve(regionCoords[region] || { lat: 37.5665, lon: 126.9780 });
             }
         });
-        
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-            return {
-                lat: parseFloat(data[0].lat),
-                lon: parseFloat(data[0].lon)
-            };
-        }
-    } catch (error) {
-        console.error('Geocoding error:', error);
-    }
-    
-    // 실패 시 지역별 기본 좌표 반환
-    const regionCoords = {
-        '서울': { lat: 37.5665, lon: 126.9780 },
-        '부산': { lat: 35.1796, lon: 129.0756 },
-        '제주': { lat: 33.4996, lon: 126.5312 },
-        '강릉': { lat: 37.7519, lon: 128.8761 },
-        '전주': { lat: 35.8242, lon: 127.1480 },
-        '경주': { lat: 35.8562, lon: 129.2247 },
-        '인천': { lat: 37.4563, lon: 126.7052 },
-        '속초': { lat: 38.2070, lon: 128.5918 },
-        '여수': { lat: 34.7604, lon: 127.6622 }
-    };
-    
-    return regionCoords[region] || { lat: 37.5665, lon: 126.9780 };
+    });
 }
 
 // 지도에 장소 마커 추가
@@ -337,41 +343,46 @@ async function addPlaceToMap(place, index, total, region) {
     
     const coords = await geocodePlace(place.name, region);
     
-    // 마커 아이콘 생성
-    const markerIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="
-            background: #f97316;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 14px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            border: 2px solid white;
-        ">
-            <span style="transform: rotate(45deg); display: block;">${index + 1}</span>
-        </div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30]
+    // 커스텀 마커 이미지 생성
+    const markerImageSrc = `data:image/svg+xml;base64,${btoa(`
+        <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="15" cy="15" r="13" fill="#f97316" stroke="white" stroke-width="2"/>
+            <text x="15" y="20" text-anchor="middle" fill="white" font-size="14" font-weight="bold">${index + 1}</text>
+        </svg>
+    `)}`;
+    
+    const imageSize = new kakao.maps.Size(30, 30);
+    const imageOptions = {
+        offset: new kakao.maps.Point(15, 30)
+    };
+    const markerImage = new kakao.maps.MarkerImage(markerImageSrc, imageSize, imageOptions);
+    
+    // 마커 생성
+    const marker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(coords.lat, coords.lon),
+        image: markerImage,
+        map: state.map
     });
     
-    const marker = L.marker([coords.lat, coords.lon], { icon: markerIcon })
-        .addTo(state.map)
-        .bindPopup(`
-            <div class="map-popup">
-                <h4>${place.name}</h4>
-                <p>${place.desc}</p>
+    // 인포윈도우 생성
+    const infoWindow = new kakao.maps.InfoWindow({
+        content: `
+            <div class="map-popup" style="padding: 10px; min-width: 200px;">
+                <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 900; color: #1e293b;">${place.name}</h4>
+                <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">${place.desc}</p>
             </div>
-        `);
+        `,
+        removable: true
+    });
+    
+    // 마커 클릭 시 인포윈도우 표시
+    kakao.maps.event.addListener(marker, 'click', function() {
+        infoWindow.open(state.map, marker);
+    });
     
     state.markers.push({
         marker: marker,
+        infoWindow: infoWindow,
         coords: coords,
         place: place
     });
@@ -383,32 +394,49 @@ async function addPlaceToMap(place, index, total, region) {
 function drawRouteOnMap(coordinates) {
     if (!state.map || coordinates.length < 2) return;
     
+    // 경로 좌표 배열 생성
+    const path = coordinates.map(c => new kakao.maps.LatLng(c.lat, c.lon));
+    
     // 경로 선 그리기
-    const routeLine = L.polyline(
-        coordinates.map(c => [c.lat, c.lon]),
-        {
-            color: '#f97316',
-            weight: 4,
-            opacity: 0.7,
-            smoothFactor: 1
-        }
-    ).addTo(state.map);
+    const polyline = new kakao.maps.Polyline({
+        path: path,
+        strokeWeight: 4,
+        strokeColor: '#f97316',
+        strokeOpacity: 0.7,
+        strokeStyle: 'solid'
+    });
+    
+    polyline.setMap(state.map);
+    state.polylines.push(polyline);
     
     // 모든 마커가 보이도록 지도 범위 조정
     if (coordinates.length > 0) {
-        const bounds = L.latLngBounds(coordinates.map(c => [c.lat, c.lon]));
-        state.map.fitBounds(bounds, { padding: [50, 50] });
+        const bounds = new kakao.maps.LatLngBounds();
+        coordinates.forEach(c => {
+            bounds.extend(new kakao.maps.LatLng(c.lat, c.lon));
+        });
+        state.map.setBounds(bounds, 50, 50, 50, 50);
     }
 }
 
 // 결과 데이터로 지도 업데이트
 async function updateMapWithResults(data, region) {
-    // 기존 지도 제거
-    if (state.map) {
-        state.map.remove();
-        state.map = null;
-        state.markers = [];
-    }
+    // 기존 마커 및 경로 제거
+    state.markers.forEach(marker => {
+        if (marker && marker.marker && marker.marker.setMap) {
+            marker.marker.setMap(null);
+        }
+        if (marker && marker.infoWindow && marker.infoWindow.close) {
+            marker.infoWindow.close();
+        }
+    });
+    state.polylines.forEach(polyline => {
+        if (polyline && polyline.setMap) {
+            polyline.setMap(null);
+        }
+    });
+    state.markers = [];
+    state.polylines = [];
     
     // 약간의 지연 후 지도 생성 (DOM 업데이트 후)
     setTimeout(async () => {
@@ -419,14 +447,9 @@ async function updateMapWithResults(data, region) {
         }
         
         // 지도 초기화
-        initMap();
-        
-        // 지도 크기 조정 (컨테이너가 처음 표시될 때 필요)
-        setTimeout(() => {
-            if (state.map) {
-                state.map.invalidateSize();
-            }
-        }, 200);
+        if (!state.map) {
+            initMap();
+        }
         
         const allActivities = data.days.flatMap(d => d.activities);
         const coordinates = [];
@@ -438,9 +461,9 @@ async function updateMapWithResults(data, region) {
                 coordinates.push(coords);
             }
             
-            // API 호출 간 딜레이 (Nominatim 사용 제한)
+            // API 호출 간 딜레이 (카카오맵 API 사용 제한)
             if (i < allActivities.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
         }
         
@@ -449,14 +472,8 @@ async function updateMapWithResults(data, region) {
             drawRouteOnMap(coordinates);
         } else if (coordinates.length === 1) {
             // 마커 하나만 있을 때
-            state.map.setView([coordinates[0].lat, coordinates[0].lon], 15);
-        }
-        
-        // 지도 크기 다시 조정
-        if (state.map) {
-            setTimeout(() => {
-                state.map.invalidateSize();
-            }, 100);
+            state.map.setCenter(new kakao.maps.LatLng(coordinates[0].lat, coordinates[0].lon));
+            state.map.setLevel(5);
         }
     }, 300);
 }
@@ -478,12 +495,24 @@ function showHome() {
     showScreen('home');
     state.currentResult = null;
     
-    // 지도 제거
-    if (state.map) {
-        state.map.remove();
-        state.map = null;
-        state.markers = [];
-    }
+    // 지도 마커 및 경로 제거
+    state.markers.forEach(marker => {
+        if (marker && marker.marker && marker.marker.setMap) {
+            marker.marker.setMap(null);
+        }
+        if (marker && marker.infoWindow && marker.infoWindow.close) {
+            marker.infoWindow.close();
+        }
+    });
+    state.polylines.forEach(polyline => {
+        if (polyline && polyline.setMap) {
+            polyline.setMap(null);
+        }
+    });
+    state.markers = [];
+    state.polylines = [];
+    state.map = null;
+    state.geocoder = null;
     
     // 지도 컨테이너 숨기기
     const mapContainer = document.getElementById('map-container');
