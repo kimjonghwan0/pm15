@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>귀차니스트의 방랑</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="style.css">
+    <!-- 
+        카카오맵 API 설정 방법:
+        1. 카카오 개발자 센터(https://developers.kakao.com/) 접속
+        2. 내 애플리케이션 > 애플리케이션 추가하기
+        3. 플랫폼 설정 > Web 플랫폼 등록 (도메인 등록 필요)
+        4. 앱 키 > JavaScript 키를 복사하여 아래 YOUR_KAKAO_API_KEY에 입력하세요
+    -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=96184a14c5541baae7257c8928bbf3b0&libraries=services"></script>
 </head>
 <body>
     <div class="app-container">
@@ -152,7 +159,6 @@
         </main>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="app.js"></script>
 </body>
 </html>
