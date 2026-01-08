@@ -1012,10 +1012,9 @@ body {
     background: #f1f5f9;
 }
 
-/* Leaflet 컨테이너 스타일 */
-.leaflet-container {
+/* 카카오맵 컨테이너 스타일 */
+#travel-map {
     font-family: 'Pretendard', sans-serif;
-    border-radius: 32px;
 }
 
 /* Custom Marker Styles */
@@ -1066,21 +1065,9 @@ body {
     margin: 0;
 }
 
-/* Leaflet Popup 커스터마이징 */
-.leaflet-popup-content-wrapper {
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
-    padding: 0;
-}
-
-.leaflet-popup-content {
-    margin: 16px;
+/* 카카오맵 InfoWindow 커스터마이징 */
+.kakao-maps-info-window {
     font-family: 'Pretendard', sans-serif;
-}
-
-.leaflet-popup-tip {
-    background: white;
-    box-shadow: none;
 }
 
 /* Responsive */
